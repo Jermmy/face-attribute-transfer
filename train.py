@@ -35,19 +35,52 @@ def train(config):
 
     vgg.eval()
 
-    content_image = cv2.imread(config.content_image)
-    content_image = cv2.cvtColor(content_image, cv2.COLOR_BGR2RGB)
-    style_image = cv2.imread(config.style_image)
-    style_image = cv2.cvtColor(style_image, cv2.COLOR_BGRA2RGB)
+    content_img = cv2.imread(config.content_img)
+    content_img = cv2.cvtColor(content_img, cv2.COLOR_BGR2RGB)
+    style_img = cv2.imread(config.style_img)
+    style_img = cv2.cvtColor(style_img, cv2.COLOR_BGRA2RGB)
 
-    content_image = prep(content_image)
-    style_image = prep(style_image)
+    content_img = prep(content_img)
+    style_img = prep(style_img)
 
-    content_image = Variable(content_image.unsqueeze(0)).to(device)
-    style_image = Variable(style_image.unsqueeze(0)).to(device)
+    content_img = Variable(content_img.unsqueeze(0)).to(device)
+    style_img = Variable(style_img.unsqueeze(0)).to(device)
 
     content_layers = config.content_layers.split(',')
     style_layers = config.style_layers.split(',')
+
+    gramLoss = GramLoss().to(device)
+    vggLoss = torch.nn.MSELoss().to(device)
+
+    opt_img = Variable(content_img.data.clone(), required_grad=True)
+
+    optim = torch.optim.Adam(params=opt_img, lr=config.lr)
+
+    for epoch in range(config.epochs):
+        optim.zero_grad()
+
+        content_loss = 0
+        style_loss = 0
+
+        content_feat = vgg(content_img)
+        style_feat = vgg(style_img)
+        opt_feat = vgg(opt_img)
+        for cl in content_layers:
+            content_loss += config.lc * vggLoss(content_feat[cl].detach(), opt_feat[cl])
+
+        for sl in style_layers:
+            style_loss += config.ls * gramLoss(style_feat[sl].detach(), opt_feat[sl])
+
+        loss = content_loss + style_loss
+        loss.backward()
+
+        optim.step()
+
+        print('content loss: %.4f, style loss: %.4f' % (style_loss.item(), content_loss.item()))
+
+
+
+
 
 
 
