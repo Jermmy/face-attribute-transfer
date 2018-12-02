@@ -3,9 +3,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class Vgg16(torch.nn.Module):
+class VGG16(torch.nn.Module):
     def __init__(self):
-        super(Vgg16, self).__init__()
+        super(VGG16, self).__init__()
         self.conv1_1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1)
         self.conv1_2 = nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1)
 
@@ -54,3 +54,13 @@ class Vgg16(torch.nn.Module):
         features['relu4_3'] = F.relu(features['conv4_3'])
 
         return features
+
+    def load_model(self, model_file):
+        vgg16_dict = self.state_dict()
+        pretrained_dict = torch.load(model_file)
+        vgg16_keys = vgg16_dict.keys()
+        pretrained_keys = pretrained_dict.keys()
+        for k, pk in zip(vgg16_keys, pretrained_keys):
+            vgg16_dict[k] = pretrained_dict[pk]
+        self.load_state_dict(vgg16_dict)
+
