@@ -43,5 +43,12 @@ def train(config):
     content_image = prep(content_image)
     style_image = prep(style_image)
 
+    content_image = Variable(content_image.unsqueeze(0)).to(device)
+    style_image = Variable(style_image.unsqueeze(0)).to(device)
+
+    content_layers = config.content_layers.split(',')
+    style_layers = config.style_layers.split(',')
+
+
 
 
