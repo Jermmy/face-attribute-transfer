@@ -37,7 +37,7 @@ def train(config):
         transforms.Normalize(mean, std)
     ])
 
-    vgg = VGG16().to(device)
+    vgg = VGG16(pooling=config.pooling).to(device)
     vgg.load_model(config.vgg16)
 
     # vgg.eval()
@@ -111,6 +111,7 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=200)
     parser.add_argument('--lc', type=float, default=0.)
     parser.add_argument('--ls', type=float, default=100.)
+    parser.add_argument('--pooling', type=str, default='avg')
 
     parser.add_argument('--content_layers', type=str, default='r42')
     parser.add_argument('--style_layers', type=str, default='c22,c31')

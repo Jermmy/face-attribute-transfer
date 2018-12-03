@@ -4,7 +4,8 @@ import torch.nn.functional as F
 
 
 class VGG16(torch.nn.Module):
-    def __init__(self):
+
+    def __init__(self, pooling='max'):
         super(VGG16, self).__init__()
         self.conv1_1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1)
         self.conv1_2 = nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1)
@@ -23,6 +24,13 @@ class VGG16(torch.nn.Module):
         self.conv5_1 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1)
         self.conv5_2 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1)
         self.conv5_3 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1)
+
+        if pooling == 'max':
+            self.pooling = nn.MaxPool2d(kernel_size=2, stride=2)
+        elif pooling == 'avg':
+            self.pooling = nn.AvgPool2d(kernel_size=2, stride=2)
+        else:
+            raise NotImplementedError('Pooling type [{:s}] is not supported'.format(pooling))
 
     def forward(self, X):
         features = {}
