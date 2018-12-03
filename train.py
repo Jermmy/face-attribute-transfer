@@ -40,7 +40,9 @@ def train(config):
     vgg = VGG16().to(device)
     vgg.load_model(config.vgg16)
 
-    vgg.eval()
+    # vgg.eval()
+    for p in vgg.parameters():
+        p.requires_grad = False
 
     content_img = cv2.imread(config.content_img)
     content_img = cv2.cvtColor(content_img, cv2.COLOR_BGR2RGB)
@@ -62,34 +64,42 @@ def train(config):
     opt_img = Variable(torch.randn(content_img.size()).type_as(content_img.data), requires_grad=True)
     # opt_img = Variable(content_img.data.clone(), requires_grad=True).to(device)
 
-    optim = torch.optim.Adam(params=[opt_img], lr=config.lr)
+    optim = torch.optim.LBFGS(params=[opt_img], lr=config.lr)
 
-    for epoch in range(config.epochs):
-        optim.zero_grad()
+    for epoch in range(1, config.epochs + 1):
 
-        content_loss = 0
-        style_loss = 0
+        def closure():
+            optim.zero_grad()
 
-        content_feat = vgg(content_img)
-        style_feat = vgg(style_img)
-        opt_feat = vgg(opt_img)
-        for cl in content_layers:
-            content_loss += vggLoss(opt_feat[cl], content_feat[cl].detach())
-        content_loss = config.lc * content_loss
+            content_loss = 0
+            style_loss = 0
 
-        for sl in style_layers:
-            style_loss += gramLoss(opt_feat[sl], style_feat[sl].detach())
-        style_loss = config.ls * style_loss
+            content_feat = vgg(content_img)
+            style_feat = vgg(style_img)
+            opt_feat = vgg(opt_img)
+            for cl in content_layers:
+                content_loss += vggLoss(opt_feat[cl], content_feat[cl].detach())
+            content_loss = config.lc * content_loss
 
-        loss = content_loss + style_loss
-        loss.backward()
+            for sl in style_layers:
+                style_loss += gramLoss(opt_feat[sl], style_feat[sl].detach())
+            style_loss = config.ls * style_loss
 
-        optim.step()
+            loss = content_loss + style_loss
+            loss.backward()
 
-        print('content loss: %.4f, style loss: %.4f' % (content_loss.item(), style_loss.item()))
+            print('Epoch: %d | content loss: %.4f, style loss: %.4f' % (epoch, content_loss.item(), style_loss.item()))
+            if epoch % 10 == 0:
+                cv2.imwrite(join(config.result_path, 'epoch-%d.jpg' % epoch), tensor2image(opt_img))
 
-        if epoch % 5 == 0:
-            cv2.imwrite(join(config.result_path, 'epoch-%d.jpg' % epoch), tensor2image(opt_img))
+            return loss
+
+        optim.step(closure)
+
+        # print('Epoch: %d | content loss: %.4f, style loss: %.4f' % (epoch, content_loss.item(), style_loss.item()))
+
+        # if epoch % 10 == 0:
+        #     cv2.imwrite(join(config.result_path, 'epoch-%d.jpg' % epoch), tensor2image(opt_img))
 
 
 if __name__ == '__main__':
@@ -100,7 +110,7 @@ if __name__ == '__main__':
     parser.add_argument('--style_img', type=str, default='data/vangogh_starry_night.jpg')
 
     parser.add_argument('--lr', type=float, default=1e-2)
-    parser.add_argument('--epochs', type=int, default=100)
+    parser.add_argument('--epochs', type=int, default=200)
     parser.add_argument('--lc', type=float, default=1.)
     parser.add_argument('--ls', type=float, default=0.)
 
