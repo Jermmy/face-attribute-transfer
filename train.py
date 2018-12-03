@@ -8,6 +8,9 @@ from model.vgg import VGG16
 
 import cv2
 import numpy as np
+import os
+from os.path import join, exists
+import argparse
 
 mean = [0.485, 0.456, 0.406]
 std = [0.229, 0.224, 0.225]
@@ -16,7 +19,8 @@ def tensor2image(img):
     img = img.detach().cpu().numpy()[0].transpose((1, 2, 0))
     img = img * std + mean
     img = np.clip(img, 0, 1)
-    img = img * 255
+    img = (img * 255).astype(np.uint8)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     return img
 
 
@@ -24,6 +28,9 @@ def train(config):
     print(config)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    if not exists(config.result_path):
+        os.makedirs(config.result_path)
 
     prep = transforms.Compose([
         transforms.ToTensor(),
@@ -52,9 +59,10 @@ def train(config):
     gramLoss = GramLoss().to(device)
     vggLoss = torch.nn.MSELoss().to(device)
 
-    opt_img = Variable(content_img.data.clone(), required_grad=True)
+    opt_img = Variable(torch.randn(content_img.size()).type_as(content_img.data), requires_grad=True)
+    # opt_img = Variable(content_img.data.clone(), requires_grad=True).to(device)
 
-    optim = torch.optim.Adam(params=opt_img, lr=config.lr)
+    optim = torch.optim.Adam(params=[opt_img], lr=config.lr)
 
     for epoch in range(config.epochs):
         optim.zero_grad()
@@ -66,10 +74,10 @@ def train(config):
         style_feat = vgg(style_img)
         opt_feat = vgg(opt_img)
         for cl in content_layers:
-            content_loss += config.lc * vggLoss(content_feat[cl].detach(), opt_feat[cl])
+            content_loss += config.lc * vggLoss(opt_feat[cl], content_feat[cl].detach())
 
         for sl in style_layers:
-            style_loss += config.ls * gramLoss(style_feat[sl].detach(), opt_feat[sl])
+            style_loss += config.ls * gramLoss(opt_feat[sl], style_feat[sl].detach())
 
         loss = content_loss + style_loss
         loss.backward()
@@ -77,6 +85,31 @@ def train(config):
         optim.step()
 
         print('content loss: %.4f, style loss: %.4f' % (style_loss.item(), content_loss.item()))
+
+        if epoch % 5 == 0:
+            cv2.imwrite(join(config.result_path, 'epoch-%d.jpg' % epoch), tensor2image(opt_img))
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--vgg16', type=str, default='pretrain/vgg16-397923af.pth')
+    parser.add_argument('--content_img', type=str, default='data/Tuebingen_Neckarfront.jpg')
+    parser.add_argument('--style_img', type=str, default='data/vangogh_starry_night.jpg')
+
+    parser.add_argument('--lr', type=float, default=1e-3)
+    parser.add_argument('--epochs', type=int, default=50)
+    parser.add_argument('--lc', type=float, default=1.)
+    parser.add_argument('--ls', type=float, default=1.)
+
+    parser.add_argument('--content_layers', type=str, default='conv4_1,conv4_2')
+    parser.add_argument('--style_layers', type=str, default='conv2_2,conv3_1')
+    parser.add_argument('--result_path', type=str, default='result')
+
+    config = parser.parse_args()
+
+    train(config)
+
 
 
 

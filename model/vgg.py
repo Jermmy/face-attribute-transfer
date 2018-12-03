@@ -28,11 +28,11 @@ class VGG16(torch.nn.Module):
         features = {}
         features['conv1_1'] = self.conv1_1(X)
         features['relu1_1'] = F.relu(features['conv1_1'])
-        features['conv1_2'] = self.conv1_2(features['relu1'])
+        features['conv1_2'] = self.conv1_2(features['relu1_1'])
         features['relu1_2'] = F.relu(features['conv1_2'])
-        features['maxpool1_2'] = F.max_pool2d(features['relu2'], kernel_size=2, stride=2)
+        features['maxpool1_2'] = F.max_pool2d(features['relu1_2'], kernel_size=2, stride=2)
 
-        features['conv2_1'] = self.conv2_1(features['maxpool2'])
+        features['conv2_1'] = self.conv2_1(features['maxpool1_2'])
         features['relu2_1'] = F.relu(features['conv2_1'])
         features['conv2_2'] = self.conv2_2(features['relu2_1'])
         features['relu2_2'] = F.relu(features['conv2_2'])
