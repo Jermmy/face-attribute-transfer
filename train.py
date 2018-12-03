@@ -74,17 +74,19 @@ def train(config):
         style_feat = vgg(style_img)
         opt_feat = vgg(opt_img)
         for cl in content_layers:
-            content_loss += config.lc * vggLoss(opt_feat[cl], content_feat[cl].detach())
+            content_loss += vggLoss(opt_feat[cl], content_feat[cl].detach())
+        content_loss = config.lc * content_loss
 
         for sl in style_layers:
-            style_loss += config.ls * gramLoss(opt_feat[sl], style_feat[sl].detach())
+            style_loss += gramLoss(opt_feat[sl], style_feat[sl].detach())
+        style_loss = config.ls * style_loss
 
         loss = content_loss + style_loss
         loss.backward()
 
         optim.step()
 
-        print('content loss: %.4f, style loss: %.4f' % (style_loss.item(), content_loss.item()))
+        print('content loss: %.4f, style loss: %.4f' % (content_loss.item(), style_loss.item()))
 
         if epoch % 5 == 0:
             cv2.imwrite(join(config.result_path, 'epoch-%d.jpg' % epoch), tensor2image(opt_img))
@@ -97,13 +99,13 @@ if __name__ == '__main__':
     parser.add_argument('--content_img', type=str, default='data/Tuebingen_Neckarfront.jpg')
     parser.add_argument('--style_img', type=str, default='data/vangogh_starry_night.jpg')
 
-    parser.add_argument('--lr', type=float, default=1e-3)
-    parser.add_argument('--epochs', type=int, default=50)
+    parser.add_argument('--lr', type=float, default=1e-2)
+    parser.add_argument('--epochs', type=int, default=100)
     parser.add_argument('--lc', type=float, default=1.)
-    parser.add_argument('--ls', type=float, default=1.)
+    parser.add_argument('--ls', type=float, default=0.)
 
-    parser.add_argument('--content_layers', type=str, default='conv4_1,conv4_2')
-    parser.add_argument('--style_layers', type=str, default='conv2_2,conv3_1')
+    parser.add_argument('--content_layers', type=str, default='r42')
+    parser.add_argument('--style_layers', type=str, default='c22,c31')
     parser.add_argument('--result_path', type=str, default='result')
 
     config = parser.parse_args()
