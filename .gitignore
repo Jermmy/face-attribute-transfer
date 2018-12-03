@@ -105,5 +105,4 @@ venv.bak/
 
 .idea/
 pretrain/
-data/
 result/

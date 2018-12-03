@@ -61,10 +61,11 @@ def train(config):
     gramLoss = GramLoss().to(device)
     vggLoss = torch.nn.MSELoss().to(device)
 
-    opt_img = Variable(torch.randn(content_img.size()).type_as(content_img.data), requires_grad=True)
-    # opt_img = Variable(content_img.data.clone(), requires_grad=True).to(device)
+    # opt_img = Variable(torch.randn(content_img.size()).type_as(content_img.data), requires_grad=True).to(device)
+    opt_img = Variable(content_img.data.clone(), requires_grad=True).to(device)
 
-    optim = torch.optim.LBFGS(params=[opt_img], lr=config.lr)
+    # optim = torch.optim.LBFGS(params=[opt_img], lr=config.lr)
+    optim = torch.optim.Adam(params=[opt_img], lr=config.lr)
 
     for epoch in range(1, config.epochs + 1):
 
@@ -94,13 +95,10 @@ def train(config):
 
             return loss
 
-        optim.step(closure)
+        # optim.step(closure)
 
-        # print('Epoch: %d | content loss: %.4f, style loss: %.4f' % (epoch, content_loss.item(), style_loss.item()))
-
-        # if epoch % 10 == 0:
-        #     cv2.imwrite(join(config.result_path, 'epoch-%d.jpg' % epoch), tensor2image(opt_img))
-
+        closure()
+        optim.step()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -111,8 +109,8 @@ if __name__ == '__main__':
 
     parser.add_argument('--lr', type=float, default=1e-2)
     parser.add_argument('--epochs', type=int, default=200)
-    parser.add_argument('--lc', type=float, default=1.)
-    parser.add_argument('--ls', type=float, default=0.)
+    parser.add_argument('--lc', type=float, default=0.)
+    parser.add_argument('--ls', type=float, default=100.)
 
     parser.add_argument('--content_layers', type=str, default='r42')
     parser.add_argument('--style_layers', type=str, default='c22,c31')
