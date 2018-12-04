@@ -15,6 +15,7 @@ import argparse
 mean = [0.485, 0.456, 0.406]
 std = [0.229, 0.224, 0.225]
 
+
 def tensor2image(img):
     img = img.detach().cpu().numpy()[0].transpose((1, 2, 0))
     img = img * std + mean
@@ -67,7 +68,7 @@ def train(config):
     # optim = torch.optim.LBFGS(params=[opt_img], lr=config.lr)
     optim = torch.optim.Adam(params=[opt_img], lr=config.lr)
 
-    for epoch in range(1, config.epochs + 1):
+    for epoch in range(0, config.epochs):
 
         def closure():
             optim.zero_grad()
@@ -89,8 +90,9 @@ def train(config):
             loss = content_loss + style_loss
             loss.backward()
 
-            print('Epoch: %d | content loss: %.4f, style loss: %.4f' % (epoch, content_loss.item(), style_loss.item()))
-            if epoch % 10 == 0:
+            if epoch % 100 == 0:
+                print('Epoch: %d | content loss: %.4f, style loss: %.4f' % (
+                epoch + 1, content_loss.item(), style_loss.item()))
                 cv2.imwrite(join(config.result_path, 'epoch-%d.jpg' % epoch), tensor2image(opt_img))
 
             return loss
@@ -100,6 +102,7 @@ def train(config):
         closure()
         optim.step()
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
@@ -107,11 +110,11 @@ if __name__ == '__main__':
     parser.add_argument('--content_img', type=str, default='data/Tuebingen_Neckarfront.jpg')
     parser.add_argument('--style_img', type=str, default='data/vangogh_starry_night.jpg')
 
-    parser.add_argument('--lr', type=float, default=1e-2)
-    parser.add_argument('--epochs', type=int, default=200)
-    parser.add_argument('--lc', type=float, default=0.)
+    parser.add_argument('--lr', type=float, default=1e-3)
+    parser.add_argument('--epochs', type=int, default=10000)
+    parser.add_argument('--lc', type=float, default=1.)
     parser.add_argument('--ls', type=float, default=100.)
-    parser.add_argument('--pooling', type=str, default='avg')
+    parser.add_argument('--pooling', type=str, default='max')
 
     parser.add_argument('--content_layers', type=str, default='r42')
     parser.add_argument('--style_layers', type=str, default='c22,c31')
