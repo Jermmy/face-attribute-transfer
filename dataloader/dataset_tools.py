@@ -11,7 +11,8 @@ def compute_ck_action_unit(image_root_dir, output_dir, exec):
     for dirpath, dirname, filenames in os.walk(image_root_dir):
         if len(filenames) > 0:
             for f in filenames:
-                image_files += [join(dirpath, f)]
+                if f.endswith('png'):
+                    image_files += [join(dirpath, f)]
 
     if not exists(output_dir):
         os.makedirs(output_dir)
@@ -25,7 +26,8 @@ def clip_ck_face(image_root_dir, output_dir):
     for dirpath, dirname, filenames in os.walk(image_root_dir):
         if len(filenames) > 0:
             for f in filenames:
-                image_files += [join(dirpath, f)]
+                if f.endswith('png'):
+                    image_files += [join(dirpath, f)]
 
     if not exists(output_dir):
         os.makedirs(output_dir)
