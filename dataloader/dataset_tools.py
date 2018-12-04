@@ -2,8 +2,8 @@ import os
 from os.path import join, exists
 import sys
 import argparse
-import numpy as np
-import glob
+import face_recognition
+import cv2
 
 
 def compute_ck_action_unit(image_root_dir, output_dir, exec):
@@ -13,8 +13,32 @@ def compute_ck_action_unit(image_root_dir, output_dir, exec):
             for f in filenames:
                 image_files += [join(dirpath, f)]
 
+    if not exists(output_dir):
+        os.makedirs(output_dir)
+
     for f in image_files:
-        os.system(exec + ' -aus -au_static -f ' + f + ' -out_dir ' + output_dir)
+        os.system(exec + ' -aus -au_static -f ' + f + ' -out_dir ' + output_dir + ' -q')
+
+
+def clip_ck_face(image_root_dir, output_dir):
+    image_files = []
+    for dirpath, dirname, filenames in os.walk(image_root_dir):
+        if len(filenames) > 0:
+            for f in filenames:
+                image_files += [join(dirpath, f)]
+
+    if not exists(output_dir):
+        os.makedirs(output_dir)
+
+    for f in image_files:
+        print('Process %s' % f)
+        image = face_recognition.load_image_file(f)
+        l = face_recognition.face_locations(image, model='cnn')[0]
+        height = l[2] - l[0]
+        face = image[max(l[0] - height // 4, 0): l[2], l[3]: l[1]]
+        face = cv2.cvtColor(face, cv2.COLOR_BGR2RGB)
+        f = f.split('/')[-1]
+        cv2.imwrite(join(output_dir, f), face)
 
 
 def execute_cmdline(argv):
@@ -35,6 +59,11 @@ def execute_cmdline(argv):
     p.add_argument('image_root_dir', help='Root directory to read CK+ image files.')
     p.add_argument('output_dir', help='Directory to write Action Unit files.')
     p.add_argument('exec', help='Executable file.')
+
+    p = add_command('clip_ck_face', 'Clip CK+ image face.',
+                    'clip_ck_face cohn-kanade-images clip-face')
+    p.add_argument('image_root_dir', help='Root directory to read CK+ image files.')
+    p.add_argument('output_dir', help='Directory to write face images.')
 
     args = parser.parse_args(argv[1:])
     func = globals()[args.command]
