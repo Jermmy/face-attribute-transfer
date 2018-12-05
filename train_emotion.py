@@ -43,7 +43,7 @@ def train(config):
 
     if config.loss_type == 'l1':
         criterion = torch.nn.L1Loss().to(device)
-    elif config.loss_type == 'mse':
+    elif config.loss_type == 'l2':
         criterion = torch.nn.MSELoss().to(device)
     elif config.loss_type == 'smoothl1':
         criterion = torch.nn.SmoothL1Loss().to(device)
@@ -84,8 +84,8 @@ def train(config):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--image_dir', type=str, default='')
-    parser.add_argument('--csv_dir', type=str, default='')
+    parser.add_argument('--image_dir', type=str, default='/media/liuwq/data/Dataset/CK+/cohn-kanade-images/')
+    parser.add_argument('--csv_dir', type=str, default='/media/liuwq/data/Dataset/CK+/action-units/')
     parser.add_argument('--train_filelist', type=str, default='data/train_filelist.txt')
     parser.add_argument('--test_filelist', type=str, default='data/test_filelist.txt')
     parser.add_argument('--image_size', type=int, default=160)
@@ -98,7 +98,7 @@ if __name__ == '__main__':
     parser.add_argument('--pooling', type=str, default='avg')
     parser.add_argument('--ckpt_path', type=str, default='')
     parser.add_argument('--result_path', type=str, default='')
-    parser.add_argument('--loss_type', type=str, default='mse')
+    parser.add_argument('--loss_type', type=str, default='l2')
     parser.add_argument('--load_model', type=str, default=None)
 
     config = parser.parse_args()
