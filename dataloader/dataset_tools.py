@@ -4,6 +4,7 @@ import sys
 import argparse
 import face_recognition
 import cv2
+import numpy as np
 
 
 def compute_ck_action_unit(image_root_dir, output_dir, exec):
@@ -21,7 +22,22 @@ def compute_ck_action_unit(image_root_dir, output_dir, exec):
         os.system(exec + ' -aus -au_static -f ' + f + ' -out_dir ' + output_dir + ' -q')
 
 
-def clip_ck_face(image_root_dir, output_dir):
+# def compute_ck_face_landmark(image_root_dir, output_dir, exec):
+#     image_files = []
+#     for dirpath, dirname, filenames in os.walk(image_root_dir):
+#         if len(filenames) > 0:
+#             for f in filenames:
+#                 if f.endswith('png'):
+#                     image_files += [join(dirpath, f)]
+#
+#     if not exists(output_dir):
+#         os.makedirs(output_dir)
+#
+#     for f in image_files:
+#         os.system(exec + ' -2Dfp -f ' + f + ' -out_dir ' + output_dir + ' -q')
+
+
+def clip_ck_face(image_root_dir, landmark_root_dir, output_dir):
     image_files = []
     for dirpath, dirname, filenames in os.walk(image_root_dir):
         if len(filenames) > 0:
@@ -32,15 +48,27 @@ def clip_ck_face(image_root_dir, output_dir):
     if not exists(output_dir):
         os.makedirs(output_dir)
 
-    for f in image_files:
-        print('Process %s' % f)
-        image = face_recognition.load_image_file(f)
-        l = face_recognition.face_locations(image, model='cnn')[0]
-        height = l[2] - l[0]
-        face = image[max(l[0] - height // 4, 0): l[2], l[3]: l[1]]
-        face = cv2.cvtColor(face, cv2.COLOR_BGR2RGB)
-        f = f.split('/')[-1]
-        cv2.imwrite(join(output_dir, f), face)
+    image_root_name = image_root_dir.split('/')[-1]
+    landmark_root_name = landmark_root_dir.split('/')[-1]
+    for image_file in image_files:
+        print('Process %s' % image_file)
+        image = cv2.imread(image_file)
+
+        landmark_file = image_file.replace(image_root_name, landmark_root_name).split('.png')[0]\
+                        + '_landmarks.txt'
+        landmarks = []
+        with open(landmark_file, 'r') as f:
+            for line in f.readlines():
+                line = line.strip().split('   ')
+                landmarks += [(int(float(line[0])), int(float(line[1])))]
+        landmarks = np.array(landmarks)
+        tl = np.min(landmarks, axis=0)   # (x, y)
+        br = np.max(landmarks, axis=0)
+        height = br[1] - tl[1]
+        width = br[0] - tl[0]
+        image = image[max(tl[1] - height // 4, 0): br[1],
+                max(tl[0] - width // 10, 0): min(br[0] + width // 10, image.shape[1])]
+        cv2.imwrite(join(output_dir, image_file.split('/')[-1]), image)
 
 
 def execute_cmdline(argv):
@@ -63,9 +91,16 @@ def execute_cmdline(argv):
     p.add_argument('exec', help='Executable file.')
 
     p = add_command('clip_ck_face', 'Clip CK+ image face.',
-                    'clip_ck_face cohn-kanade-images clip-face')
+                    'clip_ck_face cohn-kanade-images landmarks clip-faces')
     p.add_argument('image_root_dir', help='Root directory to read CK+ image files.')
+    p.add_argument('landmark_root_dir', help='Root directory to read landmark files.')
     p.add_argument('output_dir', help='Directory to write face images.')
+
+    # p = add_command('compute_ck_face_landmark', 'Compute CK+ landmarks.',
+    #                 'compute_ck_face_landmark cohn-kanade-images landmarks OpenFace/build/bin/FaceLandmarkImg')
+    # p.add_argument('image_root_dir', help='Root directory to read CK+ image files.')
+    # p.add_argument('output_dir', help='Directory to write landmark files.')
+    # p.add_argument('exec', help='Executable file.')
 
     args = parser.parse_args(argv[1:])
     func = globals()[args.command]
