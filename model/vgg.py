@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+import torchvision.models
 
 class VGG16(torch.nn.Module):
 
@@ -38,13 +39,13 @@ class VGG16(torch.nn.Module):
         features['r11'] = F.relu(features['c11'])
         features['c12'] = self.conv1_2(features['r11'])
         features['r12'] = F.relu(features['c12'])
-        features['p12'] = F.max_pool2d(features['r12'], kernel_size=2, stride=2)
+        features['p12'] = self.pooling(features['r12'], kernel_size=2, stride=2)
 
         features['c21'] = self.conv2_1(features['p12'])
         features['r21'] = F.relu(features['c21'])
         features['c22'] = self.conv2_2(features['r21'])
         features['r22'] = F.relu(features['c22'])
-        features['p22'] = F.max_pool2d(features['r22'], kernel_size=2, stride=2)
+        features['p22'] = self.pooling(features['r22'], kernel_size=2, stride=2)
 
         features['c31'] = self.conv3_1(features['p22'])
         features['r31'] = F.relu(features['c31'])
@@ -52,7 +53,7 @@ class VGG16(torch.nn.Module):
         features['r32'] = F.relu(features['c32'])
         features['c33'] = self.conv3_3(features['r32'])
         features['r33'] = F.relu(features['c33'])
-        features['p33'] = F.max_pool2d(features['r33'], kernel_size=2, stride=2)
+        features['p33'] = self.pooling(features['r33'], kernel_size=2, stride=2)
 
         features['c41'] = self.conv4_1(features['p33'])
         features['r41'] = F.relu(features['c41'])
