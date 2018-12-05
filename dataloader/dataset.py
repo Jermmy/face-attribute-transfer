@@ -8,9 +8,10 @@ import cv2
 
 class TrainDataset(data.Dataset):
 
-    def __init__(self, image_dir, csv_dir, transform):
+    def __init__(self, image_dir, csv_dir, image_size, transform):
         self.image_dir = image_dir
         self.csv_dir = csv_dir
+        self.image_size = image_size
         self.image_files = [f for f in os.listdir(image_dir) if f.endswith('png')]
         self.csv_files = [f for f in os.listdir(csv_dir) if f.endswith('csv')]
 
@@ -22,6 +23,9 @@ class TrainDataset(data.Dataset):
     def __getitem__(self, idx):
         image = cv2.imread(join(self.image_dir, self.image_files[idx]))
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+        image = cv2.resize(image, (self.image_size, self.image_size), interpolation=cv2.INTER_LINEAR)
+
         au = np.loadtxt(join(self.csv_dir, self.csv_files[idx]), delimiter=',', skiprows=1)
         au = au[2: 19]
 
