@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 class EmotionNet(nn.Module):
 
-    def __init__(self, pooling='max'):
+    def __init__(self, feat_size=17, pooling='max'):
         super(EmotionNet, self).__init__()
 
         self.conv1_1 = nn.Conv2d(64, 3, kernel_size=3, stride=1, padding=1)
@@ -27,7 +27,7 @@ class EmotionNet(nn.Module):
 
         self.fc6 = nn.Linear(5 * 5 * 512, 1024)
         self.fc7 = nn.Linear(1024, 1024)
-        self.fc8 = nn.Linear(1024, 17)
+        self.fc8 = nn.Linear(1024, feat_size)
 
         if pooling == 'max':
             self.pooling = nn.MaxPool2d(kernel_size=2, stride=2)
@@ -37,6 +37,7 @@ class EmotionNet(nn.Module):
             raise NotImplementedError('Pooling type [{:s}] is not supported'.format(pooling))
 
     def forward(self, x):
+        # 160 * 160 * 3
         x = self.conv1_1(x)
         x = F.relu(x)
         x = self.conv1_2(x)

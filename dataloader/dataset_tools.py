@@ -2,7 +2,7 @@ import os
 from os.path import join, exists
 import sys
 import argparse
-import face_recognition
+import random
 import cv2
 import numpy as np
 
@@ -71,6 +71,23 @@ def clip_ck_face(image_root_dir, landmark_root_dir, output_dir):
         cv2.imwrite(join(output_dir, image_file.split('/')[-1]), image)
 
 
+def split_dataset(image_dir, train_file, test_file):
+    image_files = [f for f in os.listdir(image_dir) if f.endswith('png')]
+    random.shuffle(image_files)
+    train_image_files = image_files[0: int(len(image_files) * 0.8)]
+    test_image_files = image_files[int(len(image_files) * 0.8):]
+
+    with open(train_file, 'w') as file:
+        for f in train_image_files:
+            au_file = f.replace('png', 'csv')
+            file.write(f + ',' + au_file + '\n')
+
+    with open(test_file, 'w') as file:
+        for f in test_image_files:
+            au_file = f.replace('png', 'csv')
+            file.write(f + ',' + au_file + '\n')
+
+
 def execute_cmdline(argv):
     prog = argv[0]
     parser = argparse.ArgumentParser(
@@ -101,6 +118,12 @@ def execute_cmdline(argv):
     # p.add_argument('image_root_dir', help='Root directory to read CK+ image files.')
     # p.add_argument('output_dir', help='Directory to write landmark files.')
     # p.add_argument('exec', help='Executable file.')
+
+    p = add_command('split_dataset', 'Split CK+ dataset into train and test parts.',
+                    'split_dataset clip_faces train_filelist test_filelist.')
+    p.add_argument('image_dir', help='Root directory to read clip face image files.')
+    p.add_argument('train_file', help='Train filelist to write.')
+    p.add_argument('test_file', help='Test filelist to write.')
 
     args = parser.parse_args(argv[1:])
     func = globals()[args.command]
