@@ -4,7 +4,13 @@ import torch.nn.functional as F
 
 class EmotionNet(nn.Module):
 
-    def __init__(self, feat_size=17, pooling='max', dropout=0.5, feat_type='regress'):
+    def __init__(self, feat_size=17, pooling='max', dropout=0.5, feat_activation='linear'):
+        '''
+        :param feat_size: feature size of network
+        :param pooling: pooling type
+        :param dropout:
+        :param feat_activation: activation of last layer
+        '''
         super(EmotionNet, self).__init__()
 
         self.conv1_1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1)
@@ -29,13 +35,13 @@ class EmotionNet(nn.Module):
                                  nn.Dropout(dropout))
         self.fc7 = nn.Sequential(nn.Linear(1024, 1024),
                                  nn.Dropout(dropout))
-        if feat_type == 'regress':
-            self.fc8 = nn.Linear(1024, feat_size)
-        elif feat_type == 'cls':
-            self.fc8 = nn.Sequential(
-                nn.Linear(1024, feat_size),
-                nn.Sigmoid()
-            )
+        self.fc8 = nn.Linear(1024, feat_size)
+        if feat_activation == 'linear':
+            self.activation = None
+        elif feat_activation == 'sigmoid':
+            self.activation = nn.Sigmoid()
+        else:
+            raise NotImplementedError('Activation type [{:s}] is not supported'.format(feat_activation))
 
         if pooling == 'max':
             self.pooling = nn.MaxPool2d(kernel_size=2, stride=2)
@@ -85,7 +91,11 @@ class EmotionNet(nn.Module):
         x = x.view(x.shape[0], -1)
         x = F.relu(self.fc6(x))
         x = F.relu(self.fc7(x))
-        x = F.relu(self.fc8(x))
+        x = self.fc8(x)
+
+        if self.activation:
+            x = self.activation(x)
+
         return x
 
     def forward_feat(self, x):
@@ -132,5 +142,8 @@ class EmotionNet(nn.Module):
         features['fc7'] = self.fc7(features['r6'])
         features['r7'] = F.relu(features['fc7'])
         features['fc8'] = self.fc8(features['r7'])
+
+        if self.activation:
+            features['r8'] = self.activation(features['fc8'])
 
         return features
