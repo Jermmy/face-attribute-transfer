@@ -34,12 +34,13 @@ class TrainDataset(data.Dataset):
 
         au = np.loadtxt(csv_file, delimiter=',', skiprows=1)
 
-        au = au[5:22]
+        au_regress = au[5:22]
+        au_cls = au[22:]
 
         if self.transform:
             image = self.transform(image)
 
-        sample = {'image': image, 'au': au}
+        sample = {'image': image, 'au_regress': au_regress, 'au_cls': au_cls}
         return sample
 
 

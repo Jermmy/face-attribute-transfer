@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 class EmotionNet(nn.Module):
 
-    def __init__(self, feat_size=17, pooling='max', dropout=0.5):
+    def __init__(self, feat_size=17, pooling='max', dropout=0.5, feat_type='regress'):
         super(EmotionNet, self).__init__()
 
         self.conv1_1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1)
@@ -29,7 +29,13 @@ class EmotionNet(nn.Module):
                                  nn.Dropout(dropout))
         self.fc7 = nn.Sequential(nn.Linear(1024, 1024),
                                  nn.Dropout(dropout))
-        self.fc8 = nn.Linear(1024, feat_size)
+        if feat_type == 'regress':
+            self.fc8 = nn.Linear(1024, feat_size)
+        elif feat_type == 'cls':
+            self.fc8 = nn.Sequential(
+                nn.Linear(1024, feat_size),
+                nn.Sigmoid()
+            )
 
         if pooling == 'max':
             self.pooling = nn.MaxPool2d(kernel_size=2, stride=2)
