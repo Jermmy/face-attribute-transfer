@@ -16,6 +16,7 @@ class TrainDataset(data.Dataset):
             for line in f.readlines():
                 line = line.strip()
                 if line != '':
+                    line = line.split(',')
                     self.train_data += [line]
 
         self.transform = transform
@@ -32,7 +33,8 @@ class TrainDataset(data.Dataset):
         image = cv2.resize(image, (self.image_size, self.image_size), interpolation=cv2.INTER_LINEAR)
 
         au = np.loadtxt(csv_file, delimiter=',', skiprows=1)
-        au = au[2: 19]
+
+        au = au[5:22]
 
         if self.transform:
             image = self.transform(image)

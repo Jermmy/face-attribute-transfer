@@ -8,6 +8,7 @@ from model.emotionnet import EmotionNet
 
 import cv2
 import numpy as np
+from tqdm import tqdm
 import os
 from os.path import join, exists
 import argparse
@@ -39,6 +40,11 @@ def train(config):
     if config.load_model:
         emotionnet.load_state_dict(torch.load(config.load_model))
 
+    # Multi-GPU
+    if config.device_ids:
+        device_ids = [int(ids) for ids in config.device_ids.split(',')]
+        emotionnet = torch.nn.DataParallel(emotionnet, device_ids=device_ids)
+
     optim = torch.optim.Adam(params=emotionnet.parameters(), lr=config.lr)
 
     if config.loss_type == 'l1':
@@ -52,9 +58,9 @@ def train(config):
 
     for epoch in range(1 + config.continue_train, config.epochs + 1):
 
-        for i, data in enumerate(train_loader):
+        for i, data in enumerate(tqdm(train_loader)):
             image = data['image'].to(device)
-            au = data['au'].to(device)
+            au = data['au'].float().to(device)
 
             au_feat = emotionnet(image)
 
@@ -63,14 +69,14 @@ def train(config):
             loss.backward()
             optim.step()
 
-            if i % 500 == 0:
-                print('Epoch: %d/%d  loss: %.4f' % (epoch, len(config.epochs), loss.item()))
+            if i % 50 == 0:
+                print('Epoch: %d/%d | Step: %d/%d | Loss: %.4f' % (epoch, config.epochs, i, len(train_loader), loss.item()))
 
         emotionnet.eval()
         total_loss = 0
         for i, data in enumerate(test_loader):
             image = data['image'].to(device)
-            au = data['au'].to(device)
+            au = data['au'].float().to(device)
             au_feat = emotionnet(image)
             loss = criterion(au_feat, au)
             total_loss += loss.item()
@@ -79,13 +85,16 @@ def train(config):
         emotionnet.train()
 
         if epoch % 5 == 0:
-            torch.save(emotionnet.state_dict(), join(config.ckpt_path, 'epoch-%d.pkl' % epoch))
+            if config.device_ids:
+                torch.save(emotionnet.module.state_dict(), join(config.ckpt_path, 'epoch-%d.pkl' % epoch))
+            else:
+                torch.save(emotionnet.state_dict(), join(config.ckpt_path, 'epoch-%d.pkl' % epoch))
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--image_dir', type=str, default='/media/liuwq/data/Dataset/CK+/cohn-kanade-images/')
-    parser.add_argument('--csv_dir', type=str, default='/media/liuwq/data/Dataset/CK+/action-units/')
+    parser.add_argument('--image_dir', type=str, default='/media/liuwq/data/Dataset/emotionnet/CK+/clip-faces/')
+    parser.add_argument('--csv_dir', type=str, default='/media/liuwq/data/Dataset/emotionnet/CK+/action-units/')
     parser.add_argument('--train_filelist', type=str, default='data/train_filelist.txt')
     parser.add_argument('--test_filelist', type=str, default='data/test_filelist.txt')
     parser.add_argument('--image_size', type=int, default=160)
@@ -94,6 +103,7 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=30)
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--continue_train', type=int, default=0)
+    parser.add_argument('--device_ids', type=str, default=None)
 
     parser.add_argument('--pooling', type=str, default='avg')
     parser.add_argument('--ckpt_path', type=str, default='')
