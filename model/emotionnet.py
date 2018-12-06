@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 class EmotionNet(nn.Module):
 
-    def __init__(self, feat_size=17, pooling='max'):
+    def __init__(self, feat_size=17, pooling='max', dropout=0.5):
         super(EmotionNet, self).__init__()
 
         self.conv1_1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1)
@@ -25,8 +25,10 @@ class EmotionNet(nn.Module):
         self.conv5_2 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1)
         self.conv5_3 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1)
 
-        self.fc6 = nn.Linear(5 * 5 * 512, 1024)
-        self.fc7 = nn.Linear(1024, 1024)
+        self.fc6 = nn.Sequential(nn.Linear(5 * 5 * 512, 1024),
+                                 nn.Dropout(dropout))
+        self.fc7 = nn.Sequential(nn.Linear(1024, 1024),
+                                 nn.Dropout(dropout))
         self.fc8 = nn.Linear(1024, feat_size)
 
         if pooling == 'max':
