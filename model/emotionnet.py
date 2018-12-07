@@ -121,10 +121,30 @@ class EmotionNet(nn.Module):
         features['p53'] = self.pooling(features['r53'])
 
         features['r53'] = features['r53'].view(-1, 5 * 5 * 512)
-        features['fc6'] = self.fc6(features['r53'])
+        features['fc6'] = self.fc6(features['r53'] )
         features['r6'] = F.relu(features['fc6'])
         features['fc7'] = self.fc7(features['r6'])
         features['r7'] = F.relu(features['fc7'])
         features['fc8'] = self.fc8(features['r7'])
 
         return features
+
+
+class GLEmotionnet(nn.Module):
+
+    def __init__(self, feat_size=17, pooling='max', dropout=0.5):
+        super(GLEmotionnet, self).__init__()
+
+        self.landmarkLayer = nn.Sequential(
+            nn.Conv2d(3, 80, kernel_size=5, stride=1, padding=2),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.Conv2d(80, 96, kernel_size=4, stride=1, padding=2),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.Conv2d(96, 128, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1),
+        )
+        self.landmarkFeat = nn.Sequential(
+            nn.Linear(10000, 1800),
+            nn.Linear(1800, 1000),
+            nn.Linear(1000, 68 * 2)
+        )
