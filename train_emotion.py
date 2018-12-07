@@ -60,12 +60,13 @@ def train(config):
 
         for i, data in enumerate(tqdm(train_loader)):
             image = data['image'].to(device)
-            au = data['au'].float().to(device)
+            au_regress = data['au_regress'].float().to(device)
+            au_cls = data['au_cls'].float().to(device)
 
             au_feat = emotionnet(image)
 
             optim.zero_grad()
-            loss = criterion(au_feat, au)
+            loss = criterion(au_feat, au_regress)
             loss.backward()
             optim.step()
 
