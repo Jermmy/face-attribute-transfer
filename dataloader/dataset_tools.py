@@ -71,6 +71,42 @@ def clip_ck_face(image_root_dir, landmark_root_dir, output_dir):
         cv2.imwrite(join(output_dir, image_file.split('/')[-1]), image)
 
 
+def clip_ck_landmark(landmark_root_dir, output_dir):
+    landmark_files = []
+    for dirpath, dirnames, filenames in os.walk(landmark_root_dir):
+        if len(filenames) > 0:
+            for f in filenames:
+                if f.endswith('txt'):
+                    landmark_files += [join(dirpath, f)]
+
+    if not exists(output_dir):
+        os.makedirs(output_dir)
+
+    for landmark_file in landmark_files:
+        print('Process %s' % landmark_file)
+        landmarks = []
+
+        with open(landmark_file, 'r') as f:
+            for line in f.readlines():
+                line = line.strip().split('   ')
+                landmarks += [(int(float(line[0])), int(float(line[1])))]
+        landmarks = np.array(landmarks)
+        tl = np.min(landmarks, axis=0)
+        br = np.max(landmarks, axis=0)
+        height = br[1] - tl[1]
+        width = br[0] - tl[0]
+
+        shift_up = max(tl[1] - height // 4, 0)
+        shift_left = max(tl[0] - width // 10, 0)
+
+        landmarks[:, 1] = landmarks[:, 1] - shift_up
+        landmarks[:, 0] = landmarks[:, 0] - shift_left
+
+        with open(join(output_dir, landmark_file.split('/')[-1]), 'w') as f:
+            for landmark in landmarks:
+                f.write("%f,%f\n" % (landmark[0], landmark[1]))
+
+
 def split_dataset(image_dir, train_file, test_file):
     image_files = [f for f in os.listdir(image_dir) if f.endswith('png')]
     random.shuffle(image_files)
@@ -79,13 +115,11 @@ def split_dataset(image_dir, train_file, test_file):
 
     with open(train_file, 'w') as file:
         for f in train_image_files:
-            au_file = f.replace('png', 'csv')
-            file.write(f + ',' + au_file + '\n')
+            file.write(f + '\n')
 
     with open(test_file, 'w') as file:
         for f in test_image_files:
-            au_file = f.replace('png', 'csv')
-            file.write(f + ',' + au_file + '\n')
+            file.write(f + '\n')
 
 
 def execute_cmdline(argv):
@@ -124,6 +158,11 @@ def execute_cmdline(argv):
     p.add_argument('image_dir', help='Root directory to read clip face image files.')
     p.add_argument('train_file', help='Train filelist to write.')
     p.add_argument('test_file', help='Test filelist to write.')
+
+    p = add_command('clip_ck_landmark', 'Clip landmark to match the clip face image.',
+                    'clip_ck_landmark Landmarks clip-landmarks')
+    p.add_argument('landmark_root_dir', help='Root directory to read landmark files.')
+    p.add_argument('output_dir', help='Directory to write new landmark files.')
 
     args = parser.parse_args(argv[1:])
     func = globals()[args.command]
